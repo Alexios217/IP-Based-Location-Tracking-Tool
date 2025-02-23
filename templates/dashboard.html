@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Tracking Dashboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let socket = new WebSocket("ws://127.0.0.1:8000/ws");
+
+            socket.onmessage = function (event) {
+                let data = JSON.parse(event.data);
+                let table = document.getElementById("ip-table");
+                let newRow = table.insertRow(-1);
+                
+                let ipCell = newRow.insertCell(0);
+                let timeCell = newRow.insertCell(1);
+
+                ipCell.innerHTML = data.ip;
+                timeCell.innerHTML = new Date(data.tracked_at).toLocaleString();
+
+                alert("🚨 New IP Tracked: " + data.ip + " at " + timeCell.innerHTML);
+            };
+
+            socket.onclose = function () {
+                console.log("WebSocket Disconnected");
+            };
+        });
+
+        function filterSuspicious() {
+            let table = document.getElementById("ip-table");
+            let rows = table.getElementsByTagName("tr");
+
+            for (let i = 1; i < rows.length; i++) {
+                let ip = rows[i].cells[0].innerText;
+                if (!ip.startsWith("192.168")) {  // Example: Hide private network IPs
+                    rows[i].style.display = "table-row";
+                } else {
+                    rows[i].style.display = "none";
+                }
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>IP Tracking Dashboard</h1>
+    <button onclick="filterSuspicious()">Show Suspicious IPs</button>
+    <table id="ip-table">
+        <thead>
+            <tr>
+                <th>IP Address</th>
+                <th>Timestamp</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in ip_records %}
+            <tr>
+                <td>{{ record.ip }}</td>
+                <td>{{ record.tracked_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
